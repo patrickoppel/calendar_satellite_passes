@@ -16,6 +16,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from datetime import datetime, timedelta, UTC
 from dateutil.parser import isoparse
+import argparse
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
@@ -278,6 +279,12 @@ def get_events(service):
     return events
 
 def main():
+  parser = argparse.ArgumentParser(description='Calculate satellite passes and create calendar events.')
+  parser.add_argument('--days', type=int, default=7, help='Number of days to search for satellite passes (default: 7)')
+  args = parser.parse_args()
+
+  days_to_search = args.days
+
   creds = None
   # The file token.json stores the user's access and refresh tokens, and is
   # created automatically when the authorization flow completes for the first
@@ -335,7 +342,7 @@ def main():
         existing_events = {}
 
     for satellite in satellites:
-        satellite.calculate_passes(ground_stations) 
+        satellite.calculate_passes(ground_stations, end_time=datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0).astimezone(utc) + timedelta(days=days_to_search))
         if combine:
             satellite.combine_passes(tolerance, timezone)                   
         satellite.create_daily_pass_id(timezone) 
