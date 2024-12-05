@@ -47,9 +47,10 @@ def fetch_tle(norad_id):
     return tle_lines
 
 class GroundStation:
-    def __init__(self, name, latitude, longitude, elevation):
+    def __init__(self, name, latitude, longitude, elevation, min_elevation):
         self.name = name
         self.topos = Topos(latitude, longitude, elevation_m=elevation)
+        self.min_elevation = min_elevation
 
 class Pass:
     def __init__(self, start, end, ground_station, max_elevation, pass_id):
@@ -98,8 +99,7 @@ class Satellite:
         self, 
         ground_stations, 
         start_time=datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0).astimezone(utc), 
-        end_time=datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0).astimezone(utc) + timedelta(days=7),
-        altitude_degrees=5.0):
+        end_time=datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0).astimezone(utc) + timedelta(days=7)):
         # Define time range for pass calculations 
         # start time is current day 12AM local time, end time is next day 11:59AM local time
         # start_time = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -115,7 +115,7 @@ class Satellite:
             gs_topos = ground_station.topos
             self.passes[gs_name]=[] #Initialise list for this groundstation
 
-            times, events = self.satellite.find_events(gs_topos, t0, t1, altitude_degrees)
+            times, events = self.satellite.find_events(gs_topos, t0, t1, 0)
 
             pass_start = None
             max_elevation = 0
@@ -142,7 +142,8 @@ class Satellite:
                     #     pass_id = 0
                     #     first_pass_next_day = True
                     pass_id += 1
-                    self.passes[gs_name].append(Pass(pass_start, pass_end, gs_name, round(max_elevation, 1), pass_id))
+                    if max_elevation > ground_station.min_elevation:
+                        self.passes[gs_name].append(Pass(pass_start, pass_end, gs_name, round(max_elevation, 1), pass_id))
 
     def combine_passes(self, tolerance=180, timezone='Australia/Sydney'):
         combined_passes=[]
@@ -333,7 +334,7 @@ def main():
     service = build("calendar", "v3", credentials=creds)
     
     satellites = [Satellite(s[0],s[1]) for s in satellites_init]
-    ground_stations = [GroundStation(g[0],g[1],g[2],g[3]) for g in ground_stations_lat_long_alt]
+    ground_stations = [GroundStation(g[0],g[1],g[2],g[3],g[4]) for g in ground_stations_lat_long_alt]
 
     events = get_events(service) 
     if events is not None:                   
