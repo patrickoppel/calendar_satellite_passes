@@ -282,9 +282,14 @@ def get_events(service):
 def main():
   parser = argparse.ArgumentParser(description='Calculate satellite passes and create calendar events.')
   parser.add_argument('--days', type=int, default=7, help='Number of days to search for satellite passes (default: 7)')
+  parser.add_argument('--start', type=str, required=False, help='Start date for satellite pass search in ISO 8601 format (e.g. 2021-01-01T00:00:00Z) defaults to current date)', default=datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0).astimezone(utc))
   args = parser.parse_args()
 
   days_to_search = args.days
+  if isinstance(args.start, str):
+    start_time = datetime.fromisoformat(args.start).astimezone(utc)
+  else:
+    start_time = args.start
 
   creds = None
   # The file token.json stores the user's access and refresh tokens, and is
@@ -343,7 +348,7 @@ def main():
         existing_events = {}
 
     for satellite in satellites:
-        satellite.calculate_passes(ground_stations, end_time=datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0).astimezone(utc) + timedelta(days=days_to_search))
+        satellite.calculate_passes(ground_stations, start_time, end_time=start_time + timedelta(days=days_to_search))
         if combine:
             satellite.combine_passes(tolerance, timezone)                   
         satellite.create_daily_pass_id(timezone) 
