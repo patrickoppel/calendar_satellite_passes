@@ -217,7 +217,11 @@ class Satellite:
 
     def create_events(self, calendar_id, service, existing_events):
         for gs, passes in self.passes.items():
-            for pass_ in passes:                
+            for pass_ in passes:                          
+                s_band_pass = pass_.max_elevation["AWS"][0] > 40.0 \
+                    if "AWS" in pass_.max_elevation \
+                        and self.name == "Waratah Seed-1" \
+                            else False
                 event = {
                     'summary': '%s %s (%s)' % (pass_.pass_id, self.name, pass_.print_only_max_elevation()),
                     'description': pass_.print_max_elevation(),
@@ -228,7 +232,8 @@ class Satellite:
                     'end': {
                         'dateTime': pass_.end,
                         'timeZone': 'Australia/Sydney',
-                    }
+                    },
+                    'colorId': '11' if s_band_pass else None,
                 }
                 event_id = pass_.pass_id
                 existing_event = next(
